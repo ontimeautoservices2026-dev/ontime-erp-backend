@@ -11,7 +11,7 @@ const fs = require('fs');
 
 // ပုံသိမ်းရန် uploads ဖိုင်တွဲ မရှိပါက အသစ်တည်ဆောက်မည်
 if (!fs.existsSync('./uploads')) {
-    fs.mkdirSync('./uploads');
+  fs.mkdirSync('./uploads');
 }
 
 // 🌐 Frontend မှ ပုံများကို လှမ်းယူနိုင်ရန် Public Folder အဖြစ် ဖွင့်ပေးခြင်း
@@ -771,16 +771,17 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// (ဃ) User Account အသစ် ဖန်တီးရန်
+// (ဃ) User Account အသစ် ဖန်တီးရန် (Password ပါ တစ်ပါတည်း သိမ်းမည်)
 app.post('/api/users', async (req, res) => {
   try {
-    const { name, email, role } = req.body;
-    // (မှတ်ချက်: တကယ့်လုပ်ငန်းခွင်တွင် password ကို bcrypt ဖြင့် hash လုပ်ပြီးမှ သိမ်းရပါမည်။ ဤနေရာတွင် ရိုးရှင်းစေရန် password ကို bypass လုပ်ထားပါသည်)
+    // Frontend က ပို့လိုက်မယ့် Data ထဲကနေ password ကိုပါ ဆွဲထုတ်လိုက်ပါပြီ
+    const { name, email, role, password } = req.body;
+    
     await pool.query(
-      `INSERT INTO users (name, email, role) VALUES ($1, $2, $3)`,
-      [name, email, role]
+      `INSERT INTO users (name, email, role, password) VALUES ($1, $2, $3, $4)`,
+      [name, email, role, password || '123456'] // <--- ဒီမှာ password ပါ ထည့်သွင်းခိုင်းလိုက်ပါပြီ (ဘာမှမပါလာရင် Default '123456' ယူပေးပါမည်)
     );
-    res.status(201).json({ success: true, message: 'User created!' });
+    res.status(201).json({ success: true, message: 'User created successfully!' });
   } catch (error) {
     console.error('Error creating user ❌:', error);
     res.status(500).json({ success: false });
@@ -794,6 +795,21 @@ app.delete('/api/users/:id', async (req, res) => {
     res.status(200).json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false });
+  }
+});
+
+// (စ) User Password ပြောင်းရန် (Change Password API အသစ်ထည့်ပေးထားပါသည်)
+app.put('/api/users/:id/password', async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    await pool.query(
+      'UPDATE users SET password = $1 WHERE id = $2', 
+      [newPassword, req.params.id]
+    );
+    res.status(200).json({ success: true, message: 'Password updated successfully!' });
+  } catch (error) {
+    console.error('Error updating password ❌:', error);
+    res.status(500).json({ success: false, message: 'Failed to update password' });
   }
 });
 
@@ -883,7 +899,7 @@ app.delete('/api/vehicles/:id', async (req, res) => {
 });
 
 // ==========================================
-// 🚀 12. CAR WASH APIs (ကားရေဆေး မှတ်တမ်းများအတွက်)
+// 🚀 12. CAR WASH APIs (ကားရေဆေး မှတ်တမ်းများအတွက်)  // မှတ်ချက် - ဒီနေရာမှာ နံပါတ် ၁၂ နှစ်ခါထပ်နေတာ မူရင်းအတိုင်း ထားပေးထားပါတယ်
 // ==========================================
 
 // (က) ရေဆေးမှတ်တမ်းအားလုံး ပြန်ခေါ်ရန် (GET)
@@ -1053,21 +1069,7 @@ app.put('/api/bays/:id/status', async (req, res) => {
 // 🚀 14. AUTHENTICATION APIs (လုံခြုံရေး ဂိတ်ပေါက်အတွက်)
 // ==========================================
 
-// (က) User အသစ်ဖန်တီးသည့် API ကို Password ပါသိမ်းရန် (Update လုပ်ပါမည်)
-app.post('/api/users', async (req, res) => {
-  try {
-    const { name, email, role, password } = req.body;
-    await pool.query(
-      `INSERT INTO users (name, email, role, password) VALUES ($1, $2, $3, $4)`,
-      [name, email, role, password || '123456']
-    );
-    res.status(201).json({ success: true, message: 'User created!' });
-  } catch (error) {
-    res.status(500).json({ success: false });
-  }
-});
-
-// (ခ) Login ဝင်ရန် စစ်ဆေးခြင်း (POST)
+// (က) Login ဝင်ရန် စစ်ဆေးခြင်း (POST) - (အပေါ်မှာ ထပ်နေတဲ့ Create User ကုဒ်အပိုကို ဒီထဲကနေ ဖယ်ရှားလိုက်ပါပြီ)
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
