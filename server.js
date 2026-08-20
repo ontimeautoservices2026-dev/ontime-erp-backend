@@ -26,7 +26,11 @@ const port = process.env.PORT || 5000;
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // နေရာတိုင်း (Browser ရော၊ EXE ရော၊ Mobile ရော) ကနေ လှမ်းခေါ်ခွင့်ပြုမည်
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // PostgreSQL Database Connection
