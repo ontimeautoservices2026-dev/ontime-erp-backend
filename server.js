@@ -1165,7 +1165,7 @@ app.post('/api/ai/chat', async (req, res) => {
 app.post('/api/upload-avatar', upload.single('avatar'), async (req, res) => {
   try {
     const { email, role } = req.body;
-    const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    const imageUrl = `https://ontime-erp-backend.onrender.com/uploads/${req.file.filename}`;
 
     if (role === 'Admin' || role === 'Super Admin') {
       await pool.query('UPDATE workshop_settings SET master_avatar = $1 WHERE id = 1', [imageUrl]);
