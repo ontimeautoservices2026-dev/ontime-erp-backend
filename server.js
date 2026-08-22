@@ -1112,7 +1112,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ==========================================
-// 🚀 15. J.A.R.V.I.S AI ENGINE (Google Gemini Integration - NEW SDK)
+// 🚀 15. J.A.R.V.I.S AI ENGINE (Direct API Fetch - No SDK Required)
 // ==========================================
 
 app.post('/api/ai/chat', async (req, res) => {
@@ -1120,19 +1120,17 @@ app.post('/api/ai/chat', async (req, res) => {
     const { message } = req.body;
     
     // API Key စစ်ဆေးခြင်း
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ reply: "System Error: Gemini API Key is missing in the server configuration." });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(200).json({ reply: "System Error: Gemini API Key is missing in the server configuration." });
     }
 
-    // 🌟 1. SDK အသစ်ဖြင့် AI ကို ချိတ်ဆက်ခြင်း 🌟
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-    // 🧠 AI အတွက် Database ထဲမှ အချက်အလက်များကို ဆွဲထုတ်ခြင်း (မူရင်းအတိုင်း)
+    // 🧠 AI အတွက် Database ထဲမှ အချက်အလက်များကို ဆွဲထုတ်ခြင်း
     const invRes = await pool.query('SELECT name, stock FROM inventory WHERE stock < 10');
     const jobsRes = await pool.query("SELECT car, task, status FROM job_cards WHERE status != 'Completed'");
     const washRes = await pool.query("SELECT car_model, service_type, status FROM wash_jobs WHERE status != 'Completed'");
 
-    // 🤖 AI ကို သူ့ရဲ့ တာဝန်နဲ့ Database အခြေအနေကို ရှင်းပြခြင်း (System Prompt - မူရင်းအတိုင်း)
+    // 🤖 AI ကို သူ့ရဲ့ တာဝန်နဲ့ Database အခြေအနေကို ရှင်းပြခြင်း (System Prompt)
     let systemContext = `
       You are J.A.R.V.I.S, the highly intelligent and professional AI assistant for 'ON TIME Auto Service' center in Yangon.
       Always be polite, concise, and helpful. Use a professional yet slightly sci-fi tone.
@@ -1148,16 +1146,29 @@ app.post('/api/ai/chat', async (req, res) => {
       User's Request: ${message}
     `;
 
-    // 🌟 2. Gemini ထံသို့ ပို့ပြီး အဖြေတောင်းခြင်း (SDK အသစ် ရေးထုံး) 🌟
-    const response = await ai.models.generateContent({
-        model: 'gemini-1.0-pro', // (gemini-pro အဟောင်းနေရာမှာ အခုခေတ် အသစ်ဆုံး Model ကို သုံးထားပါတယ်)
-        contents: systemContext
+    // 🌟 Google SDK မသုံးတော့ဘဲ တိုက်ရိုက် (Direct HTTP Request) ဖြင့် လှမ်းချိတ်ခြင်း 🌟
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: systemContext }] }]
+        })
     });
 
-    // 🌟 3. SDK အသစ်မှာ response.text လို့ တိုက်ရိုက်ယူလို့ရသွားပါပြီ 🌟
-    const aiResponse = response.text;
+    const data = await response.json();
 
+    // 🚨 တကယ်လို့ Google ဘက်က Error ပြန်လာခဲ့ရင် J.A.R.V.I.S မှတစ်ဆင့် စခရင်ပေါ်တွင် တိုက်ရိုက်ပြပေးမည် 🚨
+    if (!response.ok) {
+        console.error('Google API Error:', data);
+        return res.status(200).json({ 
+            reply: `System Error from Google: ${data.error?.message || 'Unknown API Error'}. Please check your API Key.` 
+        });
+    }
+
+    // 🌟 အောင်မြင်စွာ အဖြေရလာပါက 🌟
+    const aiResponse = data.candidates[0].content.parts[0].text;
     res.status(200).json({ reply: aiResponse });
+
   } catch (error) {
     console.error('J.A.R.V.I.S Engine Error ❌:', error);
     res.status(500).json({ reply: "Network Error: J.A.R.V.I.S neural link is currently unstable. Please try again later." });
