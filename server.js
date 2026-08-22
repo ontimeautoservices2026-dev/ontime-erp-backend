@@ -1173,7 +1173,7 @@ app.post('/api/ai/chat', async (req, res) => {
     if (!response.ok) {
         console.error('Google API Error:', data);
         return res.status(200).json({ 
-            reply: 'System Error from Google: \${data.error?.message || 'Unknown API Error'}. Please check your API Key.' 
+            reply: 'System Error from Google: ${data.error?.message || 'Unknown API Error'}. Please check your API Key.' 
         });
     }
 
