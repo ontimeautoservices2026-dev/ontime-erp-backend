@@ -1125,7 +1125,7 @@ app.post('/api/ai/chat', async (req, res) => {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
     // 🧠 AI အတွက် Database ထဲမှ အချက်အလက်များကို ဆွဲထုတ်ခြင်း
     const invRes = await pool.query('SELECT name, stock FROM inventory WHERE stock < 10');
