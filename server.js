@@ -1150,7 +1150,7 @@ app.post('/api/ai/chat', async (req, res) => {
 
     // 🌟 2. Gemini ထံသို့ ပို့ပြီး အဖြေတောင်းခြင်း (SDK အသစ် ရေးထုံး) 🌟
     const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash', // (gemini-pro အဟောင်းနေရာမှာ အခုခေတ် အသစ်ဆုံး Model ကို သုံးထားပါတယ်)
+        model: 'gemini-1.5-pro', // (gemini-pro အဟောင်းနေရာမှာ အခုခေတ် အသစ်ဆုံး Model ကို သုံးထားပါတယ်)
         contents: systemContext
     });
 
