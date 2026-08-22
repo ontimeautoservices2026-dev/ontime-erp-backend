@@ -1173,7 +1173,7 @@ app.post('/api/ai/chat', async (req, res) => {
     if (!response.ok) {
         console.error('Google API Error:', data);
         return res.status(200).json({ 
-            reply: `System Error from Google: \${data.error?.message || 'Unknown API Error'}. Please check your API Key.\` 
+            reply: 'System Error from Google: \${data.error?.message || 'Unknown API Error'}. Please check your API Key.' 
         });
     }
 
@@ -1193,7 +1193,7 @@ app.post('/api/ai/chat', async (req, res) => {
 app.post('/api/upload-avatar', upload.single('avatar'), async (req, res) => {
   try {
     const { email, role } = req.body;
-    const imageUrl = `https://api.ontimeauto.site/uploads/${req.file.filename}`;
+    const imageUrl = 'https://api.ontimeauto.site/uploads/${req.file.filename}';
 
     if (role === 'Admin' || role === 'Super Admin') {
       await pool.query('UPDATE workshop_settings SET master_avatar = $1 WHERE id = 1', [imageUrl]);
