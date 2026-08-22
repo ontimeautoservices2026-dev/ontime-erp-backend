@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 const port = process.env.PORT || 5000;
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 
 // Middleware
 app.use(cors({
@@ -1112,7 +1112,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ==========================================
-// 🚀 15. J.A.R.V.I.S AI ENGINE (Google Gemini Integration)
+// 🚀 15. J.A.R.V.I.S AI ENGINE (Google Gemini Integration - NEW SDK)
 // ==========================================
 
 app.post('/api/ai/chat', async (req, res) => {
@@ -1124,15 +1124,15 @@ app.post('/api/ai/chat', async (req, res) => {
       return res.status(500).json({ reply: "System Error: Gemini API Key is missing in the server configuration." });
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // 🌟 1. SDK အသစ်ဖြင့် AI ကို ချိတ်ဆက်ခြင်း 🌟
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    // 🧠 AI အတွက် Database ထဲမှ အချက်အလက်များကို ဆွဲထုတ်ခြင်း
+    // 🧠 AI အတွက် Database ထဲမှ အချက်အလက်များကို ဆွဲထုတ်ခြင်း (မူရင်းအတိုင်း)
     const invRes = await pool.query('SELECT name, stock FROM inventory WHERE stock < 10');
     const jobsRes = await pool.query("SELECT car, task, status FROM job_cards WHERE status != 'Completed'");
     const washRes = await pool.query("SELECT car_model, service_type, status FROM wash_jobs WHERE status != 'Completed'");
 
-    // 🤖 AI ကို သူ့ရဲ့ တာဝန်နဲ့ Database အခြေအနေကို ရှင်းပြခြင်း (System Prompt)
+    // 🤖 AI ကို သူ့ရဲ့ တာဝန်နဲ့ Database အခြေအနေကို ရှင်းပြခြင်း (System Prompt - မူရင်းအတိုင်း)
     let systemContext = `
       You are J.A.R.V.I.S, the highly intelligent and professional AI assistant for 'ON TIME Auto Service' center in Yangon.
       Always be polite, concise, and helpful. Use a professional yet slightly sci-fi tone.
@@ -1148,9 +1148,14 @@ app.post('/api/ai/chat', async (req, res) => {
       User's Request: ${message}
     `;
 
-    // Gemini ထံသို့ ပို့ပြီး အဖြေတောင်းခြင်း
-    const result = await model.generateContent(systemContext);
-    const aiResponse = result.response.text();
+    // 🌟 2. Gemini ထံသို့ ပို့ပြီး အဖြေတောင်းခြင်း (SDK အသစ် ရေးထုံး) 🌟
+    const response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash', // (gemini-pro အဟောင်းနေရာမှာ အခုခေတ် အသစ်ဆုံး Model ကို သုံးထားပါတယ်)
+        contents: systemContext
+    });
+
+    // 🌟 3. SDK အသစ်မှာ response.text လို့ တိုက်ရိုက်ယူလို့ရသွားပါပြီ 🌟
+    const aiResponse = response.text;
 
     res.status(200).json({ reply: aiResponse });
   } catch (error) {
