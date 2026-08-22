@@ -1112,7 +1112,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ==========================================
-// 🚀 15. J.A.R.V.I.S AI ENGINE (Direct API Fetch - No SDK Required)
+// 🚀 15. J.A.R.V.I.S AI ENGINE (Direct API Fetch + Accounting)
 // ==========================================
 
 app.post('/api/ai/chat', async (req, res) => {
@@ -1130,15 +1130,27 @@ app.post('/api/ai/chat', async (req, res) => {
     const jobsRes = await pool.query("SELECT car, task, status FROM job_cards WHERE status != 'Completed'");
     const washRes = await pool.query("SELECT car_model, service_type, status FROM wash_jobs WHERE status != 'Completed'");
 
+    // 💰 Accounting အတွက် Data ဆွဲထုတ်ခြင်း (ယနေ့ဝင်ငွေ နှင့် ရရန်ကျန်ငွေ)
+    const todayStr = new Date().toISOString().split('T')[0]; 
+    const revRes = await pool.query('SELECT SUM(grand_total) as total FROM invoices WHERE issue_date = $1', [todayStr]);
+    const outRes = await pool.query("SELECT SUM(grand_total - cash_received) as total FROM invoices WHERE payment_status IN ('Unpaid', 'Partial')");
+    
+    const todayRevenue = revRes.rows[0].total || 0;
+    const outstandingAmount = outRes.rows[0].total || 0;
+
     // 🤖 AI ကို သူ့ရဲ့ တာဝန်နဲ့ Database အခြေအနေကို ရှင်းပြခြင်း (System Prompt)
     let systemContext = `
       You are J.A.R.V.I.S, the highly intelligent and professional AI assistant for 'ON TIME Auto Service' center in Yangon.
       Always be polite, concise, and helpful. Use a professional yet slightly sci-fi tone.
+      IMPORTANT: Always reply in Myanmar language (Burmese) regardless of the language the user uses, unless they explicitly command you to speak in English.
       
       Here is the CURRENT REAL-TIME DATA from the workshop's database:
       1. Low Stock Inventory Alerts: ${JSON.stringify(invRes.rows)}
       2. Active Job Cards (Repairs): ${JSON.stringify(jobsRes.rows)}
       3. Active Wash & Detailing Jobs: ${JSON.stringify(washRes.rows)}
+      4. Accounting & Finance:
+         - Today's Revenue: ${todayRevenue} MMK
+         - Total Outstanding (Unpaid) Amount: ${outstandingAmount} MMK
       
       Based ONLY on the above data and your general knowledge about auto repairs, answer the user's question.
       If the user asks something not related to the auto service or the provided data, politely guide them back to workshop operations.
@@ -1146,7 +1158,7 @@ app.post('/api/ai/chat', async (req, res) => {
       User's Request: ${message}
     `;
 
-    // 🌟 Google SDK မသုံးတော့ဘဲ တိုက်ရိုက် (Direct HTTP Request) ဖြင့် လှမ်းချိတ်ခြင်း 🌟
+    // 🌟 Google သို့ တိုက်ရိုက် လှမ်းချိတ်ခြင်း 🌟
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1157,11 +1169,11 @@ app.post('/api/ai/chat', async (req, res) => {
 
     const data = await response.json();
 
-    // 🚨 တကယ်လို့ Google ဘက်က Error ပြန်လာခဲ့ရင် J.A.R.V.I.S မှတစ်ဆင့် စခရင်ပေါ်တွင် တိုက်ရိုက်ပြပေးမည် 🚨
+    // 🚨 Google ဘက်က Error တက်ပါက ပြပေးမည် 🚨
     if (!response.ok) {
         console.error('Google API Error:', data);
         return res.status(200).json({ 
-            reply: `System Error from Google: ${data.error?.message || 'Unknown API Error'}. Please check your API Key.` 
+            reply: \`System Error from Google: \${data.error?.message || 'Unknown API Error'}. Please check your API Key.\` 
         });
     }
 
